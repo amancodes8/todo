@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #eef2f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: fit;
+            margin: 0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .todo-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #6c63ff;
+            outline: none;
+        }
+
+        .todo-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .todo-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .todo-item.completed {
+            background-color: #d4edda;
+            color: #6c757d;
+            text-decoration: line-through;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-delete {
+            background-color: #e3342f;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        .btn-undo {
+            background-color: #f6993f;
+            color: white;
+        }
+
+        .btn-undo:hover {
+            background-color: #e67e22;
+        }
+
+        .btn-complete {
+            background-color: #38c172;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background-color: #28a745;
+        }
+
+        .btn-show-completed {
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .btn-show-completed:hover {
+            background-color: #5a6268;
+        }
+
+        #completed-list {
+            display: none;
+        }
+
+        @media (min-width: 600px) {
+            .todo-container {
+                padding: 40px;
+            }
+
+            h2 {
+                font-size: 28px;
+            }
+
+            input[type="text"] {
+                padding: 20px;
+                font-size: 18px;
+            }
+
+            .todo-item {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="todo-container">
+        <h2>Todo List</h2>
+        <input type="text" id="new-task" placeholder="Add a new task..." />
+        <ul id="todo-list" class="todo-list"></ul>
+        
+        <button class="btn-show-completed" onclick="toggleCompleted()">Show Completed Tasks</button>
+        <ul id="completed-list" class="todo-list"></ul>
+    </div>
+
+    <script>
+        const newTaskInput = document.getElementById('new-task');
+        const todoList = document.getElementById('todo-list');
+        const completedList = document.getElementById('completed-list');
+
+        // Load tasks from local storage on page load
+        window.onload = function() {
+            loadTasks();
+        };
+
+        // Add a new task
+        newTaskInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && newTaskInput.value.trim() !== '') {
+                const taskText = newTaskInput.value.trim();
+                addTask(taskText, false);
+                saveTasks();
+                newTaskInput.value = '';
+            }
+        });
+
+        // Add a task (either to todo or completed list)
+        function addTask(taskText, isCompleted) {
+            const li = document.createElement('li');
+            li.className = 'todo-item';
+            if (isCompleted) {
+                li.classList.add('completed');
+            }
+            li.innerHTML = `
+                <span>${taskText}</span>
+                <div class="buttons">
+                    <button class="btn btn-complete" ${isCompleted ? 'style="display:none"' : ''}>Complete</button>
+                    <button class="btn btn-undo" ${!isCompleted ? 'style="display:none"' : ''}>Undo</button>
+                    <button class="btn btn-delete">Delete</button>
+                </div>
+            `;
+            if (isCompleted) {
+                completedList.appendChild(li);
+            } else {
+                todoList.appendChild(li);
+            }
+
+            // Complete Task
+            li.querySelector('.btn-complete').addEventListener('click', function () {
+                li.classList.add('completed');
+                todoList.removeChild(li);
+                completedList.appendChild(li);
+                this.style.display = 'none';
+                li.querySelector('.btn-undo').style.display = 'inline-block';
+                saveTasks();
+            });
+
+            // Undo Task
+            li.querySelector('.btn-undo').addEventListener('click', function () {
+                li.classList.remove('completed');
+                completedList.removeChild(li);
+                todoList.appendChild(li);
+                this.style.display = 'none';
+                li.querySelector('.btn-complete').style.display = 'inline-block';
+                saveTasks();
+            });
+
+            // Delete Task
+            li.querySelector('.btn-delete').addEventListener('click', function () {
+                if (li.classList.contains('completed')) {
+                    completedList.removeChild(li);
+                } else {
+                    todoList.removeChild(li);
+                }
+                saveTasks();
+            });
+        }
+
+        // Toggle visibility of completed tasks
+        function toggleCompleted() {
+            const completedListElement = document.getElementById('completed-list');
+            if (completedListElement.style.display === 'none') {
+                completedListElement.style.display = 'block';
+                document.querySelector('.btn-show-completed').textContent = 'Hide Completed Tasks';
+            } else {
+                completedListElement.style.display = 'none';
+                document.querySelector('.btn-show-completed').textContent = 'Show Completed Tasks';
+            }
+        }
+
+        // Save tasks to local storage
+        function saveTasks() {
+            const tasks = [];
+            document.querySelectorAll('#todo-list .todo-item').forEach(item => {
+                tasks.push({ text: item.innerText.trim(), completed: false });
+            });
+            document.querySelectorAll('#completed-list .todo-item').forEach(item => {
+                tasks.push({ text: item.innerText.trim(), completed: true });
+            });
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Load tasks from local storage
+        function loadTasks() {
+            const storedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            storedTasks.forEach(task => {
+                addTask(task.text, task.completed);
+            });
+        }
+    </script>
+
+</body>
+</html>
